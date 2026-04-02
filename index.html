@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silver Q. Electronics And Electrical Specialists | Est. 1998</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root { 
+            --bg: #050505; 
+            --text: #ffffff; 
+            --accent: #7c4dff; 
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            background: var(--bg); color: var(--text); 
+            font-family: 'Inter', sans-serif; overflow-x: hidden;
+            line-height: 1.4; scrollbar-width: none; 
+        }
+        body::-webkit-scrollbar { display: none; }
+
+        #fixed-canvas { position: fixed; inset: 0; z-index: 1; opacity: 0.3; pointer-events: none; }
+        .scanlines {
+            position: fixed; inset: 0; z-index: 100;
+            background: linear-gradient(to bottom, transparent 50%, rgba(124, 77, 255, 0.02) 50%);
+            background-size: 100% 4px; pointer-events: none;
+        }
+
+        /* --- HERO --- */
+        .hero { 
+            min-height: 80vh; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; text-align: center; 
+            padding: 60px 5% 20px; position: relative; z-index: 10;
+        }
+
+        .legacy-tag { 
+            font-size: 0.75rem; letter-spacing: 3px; color: var(--accent); 
+            margin-bottom: 15px; font-weight: 700; text-transform: uppercase;
+        }
+
+        h1 { 
+            font-size: clamp(2.2rem, 8vw, 4.5rem); font-weight: 900; 
+            letter-spacing: -2px; margin-bottom: 30px; max-width: 1000px;
+            line-height: 1.1;
+        }
+
+        /* --- SPECIALIZATION HUB --- */
+        .specialize-hub {
+            display: flex; align-items: center; justify-content: center;
+            gap: 15px; width: 100%; height: 120px;
+            perspective: 1200px; margin-bottom: 40px;
+        }
+
+        .specialize-text {
+            font-size: 0.9rem; letter-spacing: 2px; color: var(--accent);
+            font-weight: 700; white-space: nowrap; opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .cylinder-box {
+            width: 280px; height: 100%; position: relative;
+            display: flex; align-items: center;
+            overflow: hidden; border-left: 2px solid var(--accent);
+        }
+
+        .cylinder {
+            position: relative; height: 40px; width: 100%;
+            transform-style: preserve-3d;
+            animation: rotate-cyl 15s linear infinite;
+        }
+
+        .cylinder-item {
+            position: absolute; width: 100%; height: 40px;
+            display: flex; align-items: center; justify-content: flex-start;
+            padding-left: 20px;
+            font-size: 1.6rem; font-weight: 900; color: #fff;
+            backface-visibility: hidden;
+        }
+
+        @keyframes rotate-cyl {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(-360deg); }
+        }
+
+        /* --- BENTO GRID --- */
+        .grid { 
+            max-width: 1200px; margin: 0 auto; padding: 0 5% 80px; 
+            display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; 
+            position: relative; z-index: 10;
+        }
+
+        .box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 30px; border-radius: 8px; }
+        .box:hover { border-color: var(--accent); background: rgba(124, 77, 255, 0.05); }
+        
+        .span-8 { grid-column: span 8; }
+        .span-4 { grid-column: span 4; }
+        .span-12 { grid-column: span 12; }
+
+        h2 { font-size: 0.7rem; letter-spacing: 2px; color: var(--accent); margin-bottom: 20px; font-weight: 700; text-transform: uppercase; }
+
+        .fb-portal { width: 100%; height: 600px; background: #fff; border-radius: 4px; overflow: hidden; display: flex; justify-content: center; }
+
+        #map { height: 350px; width: 100%; filter: grayscale(1) invert(0.9) contrast(1.2); border-radius: 4px; border: 1px solid var(--border); margin-top: 15px; }
+
+        .btn { 
+            display: inline-block; padding: 18px 40px; background: var(--accent);
+            color: #fff; text-decoration: none; font-weight: 700; font-size: 0.85rem; 
+            letter-spacing: 1px; transition: 0.3s; border-radius: 50px;
+        }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(124, 77, 255, 0.3); }
+
+        footer { padding: 60px 5%; border-top: 1px solid var(--border); text-align: center; opacity: 0.5; font-size: 0.75rem; letter-spacing: 1px; }
+
+        /* --- MOBILE OPTIMIZATION --- */
+        @media (max-width: 900px) {
+            .hero { padding: 100px 5% 40px; }
+            .specialize-hub { flex-direction: column; height: auto; gap: 5px; margin-bottom: 30px; }
+            .cylinder-box { border-left: none; width: 100%; justify-content: center; }
+            .cylinder-item { justify-content: center; padding-left: 0; font-size: 1.4rem; }
+            .span-8, .span-4 { grid-column: span 12; }
+            .fb-portal { height: 500px; }
+            h1 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="fb-root"></div>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0"></script>
+    
+    <canvas id="fixed-canvas"></canvas>
+    <div class="scanlines"></div>
+
+    <section class="hero">
+        <div class="legacy-tag">Established 1998</div>
+        <h1>Silver Q. Electronics and Electrical Specialists</h1>
+        
+        <div class="specialize-hub">
+            <div class="specialize-text">We Specialize In</div>
+            <div class="cylinder-box">
+                <div class="cylinder" id="cylinder"></div>
+            </div>
+        </div>
+
+        <a href="https://www.facebook.com/profile.php?id=61582774085939" class="btn">Message Specialists</a>
+    </section>
+
+    <main class="grid">
+        <div class="box span-8">
+            <h2>Digital Service Portal</h2>
+            <div class="fb-portal">
+                <div class="fb-page" 
+                     data-href="https://www.facebook.com/profile.php?id=61582774085939" 
+                     data-tabs="timeline,messages" 
+                     data-width="500" 
+                     data-height="600" 
+                     data-small-header="false" 
+                     data-adapt-container-width="true" 
+                     data-hide-cover="false" 
+                     data-show-facepile="true">
+                </div>
+            </div>
+        </div>
+
+        <div class="box span-4">
+            <h2>Uptime Protocol</h2>
+            <div style="margin-bottom: 25px;">
+                <p style="opacity: 0.5; font-size: 0.7rem; text-transform: uppercase;">Monday — Saturday</p>
+                <p style="font-size: 1.8rem; font-weight: 900;">07:00 — 19:00</p>
+            </div>
+            <div style="margin-bottom: 40px; color: var(--accent);">
+                <p style="opacity: 0.8; font-size: 0.7rem; text-transform: uppercase;">Sunday (Market Day)</p>
+                <p style="font-size: 1.8rem; font-weight: 900;">06:00 — 19:00</p>
+            </div>
+
+            <h2>Technical Leadership</h2>
+            <p style="font-size: 0.9rem; margin-top: 10px;">Owner: <b>Silvestre Loloy Flores Quijano</b></p>
+            <p style="font-size: 0.9rem; margin-top: 5px;">Co-Owner: <a href="https://www.facebook.com/ziipzy" style="color: var(--accent); text-decoration: none;">Ziipzy</a></p>
+        </div>
+
+        <div class="box span-12">
+            <h2>Shop Mission</h2>
+            <p style="font-size: clamp(1.1rem, 3vw, 1.5rem); line-height: 1.5;">
+                In today's fast-paced world, when a crucial device breaks, you need an expert you can trust. We are your dedicated repair shop, focused entirely on bringing your essential electronics back to life. As <b>Electronics and Electrical Specialists</b>, we dive deep into the boards, chips, and wiring of your gadgets to deliver lasting, reliable repairs.
+            </p>
+        </div>
+
+        <div class="box span-12">
+            <h2>Localization</h2>
+            <p style="opacity: 0.7;">Behind Sagbayan Public Market, Danao Road, Sagbayan, Bohol.</p>
+            <div id="map"></div>
+        </div>
+    </main>
+
+    <footer>
+        Silver Q. Electronics and Electrical Specialists<br>
+        Quality Connections, Lasting Repairs Since 1998<br>
+        Bohol, Philippines
+    </footer>
+
+    <script>
+        // --- 3D Cylinder Initialization ---
+        const items = ["Smartphones", "Laptops", "Tablets", "Consoles", "House Wiring", "Mainboards", "Diagnostics", "Appliances"];
+        const cylinder = document.getElementById('cylinder');
+        const radius = 100; 
+
+        items.forEach((text, i) => {
+            const div = document.createElement('div');
+            div.className = 'cylinder-item';
+            const angle = (360 / items.length) * i;
+            div.style.transform = `rotateX(${angle}deg) translateZ(${radius}px)`;
+            div.textContent = text;
+            cylinder.appendChild(div);
+        });
+
+        // --- Map Initialization ---
+        const lat = 9.914741517459671, lng = 124.09298670595062;
+        const map = L.map('map', { zoomControl: false, scrollWheelZoom: false }).setView([lat, lng], 17);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.marker([lat, lng]).addTo(map).bindPopup("Silver Q. Elecronics Shop").openPopup();
+
+        // --- Particle Background ---
+        const canvas = document.getElementById('fixed-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function init() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            particles = [];
+            for(let i=0; i<40; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, speed: (Math.random()*0.4)+0.1 });
+        }
+        function animate() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(124, 77, 255, 0.3)";
+            particles.forEach(p => {
+                p.y -= p.speed;
+                if(p.y < -50) p.y = canvas.height + 50;
+                ctx.fillRect(p.x, p.y, p.size, p.size * 10);
+            });
+            requestAnimationFrame(animate);
+        }
+        window.addEventListener('resize', init);
+        init(); animate();
+    </script>
+</body>
+</html>
