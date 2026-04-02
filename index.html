@@ -24,9 +24,13 @@
             font-family: 'Inter', sans-serif; overflow-x: hidden;
             line-height: 1.4; scrollbar-width: none; 
         }
-        body::-webkit-scrollbar { display: none; }
 
-        #fixed-canvas { position: fixed; inset: 0; z-index: 1; opacity: 0.3; pointer-events: none; }
+        /* --- INTERACTIVE BACKGROUND --- */
+        #bg-canvas {
+            position: fixed; inset: 0; z-index: -1;
+            background: linear-gradient(to bottom, #050505, #0a0a0f);
+        }
+
         .scanlines {
             position: fixed; inset: 0; z-index: 100;
             background: linear-gradient(to bottom, transparent 50%, rgba(124, 77, 255, 0.02) 50%);
@@ -51,11 +55,12 @@
             line-height: 1.1;
         }
 
-        /* --- SPECIALIZATION HUB --- */
+        /* --- CLICKABLE SPECIALIZATION HUB --- */
         .specialize-hub {
             display: flex; align-items: center; justify-content: center;
             gap: 15px; width: 100%; height: 120px;
             perspective: 1200px; margin-bottom: 40px;
+            cursor: pointer;
         }
 
         .specialize-text {
@@ -83,22 +88,42 @@
             font-size: 1.6rem; font-weight: 900; color: #fff;
             backface-visibility: hidden;
         }
+        
+        .etc-highlight { color: var(--accent) !important; }
 
-        @keyframes rotate-cyl {
-            0% { transform: rotateX(0deg); }
-            100% { transform: rotateX(-360deg); }
+        /* --- APP FLY-OUT ANIMATION --- */
+        #expand-overlay {
+            position: fixed; inset: 0; background: rgba(5,5,5,0.98);
+            z-index: 1000; display: none; flex-direction: column;
+            justify-content: center; align-items: center; padding: 20px;
+            backdrop-filter: blur(15px);
+            opacity: 0; transform: scale(0.4); 
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        /* --- BENTO GRID --- */
+        #expand-overlay.active {
+            opacity: 1; transform: scale(1); display: flex;
+        }
+
+        .expanded-list { list-style: none; text-align: center; }
+        .expanded-list li {
+            font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 900;
+            margin: 15px 0; color: #fff; opacity: 0; transform: translateY(30px);
+            transition: 0.4s;
+        }
+        .expanded-list li.show { opacity: 1; transform: translateY(0); }
+
+        @keyframes rotate-cyl { 0% { transform: rotateX(0deg); } 100% { transform: rotateX(-360deg); } }
+
+        /* --- GRID --- */
         .grid { 
             max-width: 1200px; margin: 0 auto; padding: 0 5% 80px; 
             display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; 
             position: relative; z-index: 10;
         }
 
-        .box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 30px; border-radius: 8px; }
+        .box { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(5px); border: 1px solid var(--border); padding: 30px; border-radius: 8px; }
         .box:hover { border-color: var(--accent); background: rgba(124, 77, 255, 0.05); }
-        
         .span-8 { grid-column: span 8; }
         .span-4 { grid-column: span 4; }
         .span-12 { grid-column: span 12; }
@@ -106,7 +131,6 @@
         h2 { font-size: 0.7rem; letter-spacing: 2px; color: var(--accent); margin-bottom: 20px; font-weight: 700; text-transform: uppercase; }
 
         .fb-portal { width: 100%; height: 600px; background: #fff; border-radius: 4px; overflow: hidden; display: flex; justify-content: center; }
-
         #map { height: 350px; width: 100%; filter: grayscale(1) invert(0.9) contrast(1.2); border-radius: 4px; border: 1px solid var(--border); margin-top: 15px; }
 
         .btn { 
@@ -114,35 +138,34 @@
             color: #fff; text-decoration: none; font-weight: 700; font-size: 0.85rem; 
             letter-spacing: 1px; transition: 0.3s; border-radius: 50px;
         }
-        .btn:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(124, 77, 255, 0.3); }
 
         footer { padding: 60px 5%; border-top: 1px solid var(--border); text-align: center; opacity: 0.5; font-size: 0.75rem; letter-spacing: 1px; }
 
-        /* --- MOBILE OPTIMIZATION --- */
         @media (max-width: 900px) {
-            .hero { padding: 100px 5% 40px; }
-            .specialize-hub { flex-direction: column; height: auto; gap: 5px; margin-bottom: 30px; }
+            .specialize-hub { flex-direction: column; height: auto; gap: 5px; }
             .cylinder-box { border-left: none; width: 100%; justify-content: center; }
             .cylinder-item { justify-content: center; padding-left: 0; font-size: 1.4rem; }
-            .span-8, .span-4 { grid-column: span 12; }
-            .fb-portal { height: 500px; }
-            h1 { font-size: 2.5rem; }
+            .span-8, .span-4, .span-12 { grid-column: span 12; }
         }
     </style>
 </head>
 <body>
 
+    <canvas id="bg-canvas"></canvas>
     <div id="fb-root"></div>
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0"></script>
-    
-    <canvas id="fixed-canvas"></canvas>
     <div class="scanlines"></div>
+
+    <div id="expand-overlay" onclick="closeList()">
+        <ul class="expanded-list" id="list-container"></ul>
+        <p style="margin-top: 40px; font-size: 0.7rem; color: var(--accent); letter-spacing: 4px; text-transform: uppercase;">Tap to Close System</p>
+    </div>
 
     <section class="hero">
         <div class="legacy-tag">Established 1998</div>
         <h1>Silver Q. Electronics and Electrical Specialists</h1>
         
-        <div class="specialize-hub">
+        <div class="specialize-hub" onclick="expandList()">
             <div class="specialize-text">We Specialize In</div>
             <div class="cylinder-box">
                 <div class="cylinder" id="cylinder"></div>
@@ -179,10 +202,9 @@
                 <p style="opacity: 0.8; font-size: 0.7rem; text-transform: uppercase;">Sunday (Market Day)</p>
                 <p style="font-size: 1.8rem; font-weight: 900;">06:00 — 19:00</p>
             </div>
-
             <h2>Technical Leadership</h2>
-            <p style="font-size: 0.9rem; margin-top: 10px;">Owner: <b>Silvestre Loloy Flores Quijano</b></p>
-            <p style="font-size: 0.9rem; margin-top: 5px;">Co-Owner: <a href="https://www.facebook.com/ziipzy" style="color: var(--accent); text-decoration: none;">Ziipzy</a></p>
+            <p style="font-size: 0.9rem; margin-top: 10px;">Owner: <b><a href="https://www.facebook.com/silvestre.loloy.flores.quijano" style="color: inherit; text-decoration: none;">Silvestre Loloy Flores Quijano</a></b></p>
+            <p style="font-size: 0.9rem; margin-top: 5px;">Co-Owner: <a href="http://ziipzy.qzz.io/" style="color: var(--accent); text-decoration: none;">Ziipzy</a></p>
         </div>
 
         <div class="box span-12">
@@ -194,59 +216,104 @@
 
         <div class="box span-12">
             <h2>Localization</h2>
-            <p style="opacity: 0.7;">Behind Sagbayan Public Market, Danao Road, Sagbayan, Bohol.</p>
+            <p style="opacity: 0.7; margin-bottom: 10px;">Behind Sagbayan Public Market, Danao Road, Sagbayan, Bohol.</p>
             <div id="map"></div>
         </div>
     </main>
 
     <footer>
         Silver Q. Electronics and Electrical Specialists<br>
-        Quality Connections, Lasting Repairs Since 1998<br>
-        Bohol, Philippines
+        Quality Connections, Lasting Repairs Since 1998
     </footer>
 
     <script>
-        // --- 3D Cylinder Initialization ---
-        const items = ["Smartphones", "Laptops", "Tablets", "Consoles", "House Wiring", "Mainboards", "Diagnostics", "Appliances"];
+        const items = ["Smartphones", "Laptops", "Tablets", "Consoles", "Mainboards", "Televisions", "Diagnostics", "Etc."];
         const cylinder = document.getElementById('cylinder');
-        const radius = 100; 
+        const listContainer = document.getElementById('list-container');
+        const overlay = document.getElementById('expand-overlay');
 
         items.forEach((text, i) => {
             const div = document.createElement('div');
-            div.className = 'cylinder-item';
-            const angle = (360 / items.length) * i;
-            div.style.transform = `rotateX(${angle}deg) translateZ(${radius}px)`;
+            div.className = 'cylinder-item' + (text === "Etc." ? ' etc-highlight' : '');
+            div.style.transform = `rotateX(${(360/items.length)*i}deg) translateZ(100px)`;
             div.textContent = text;
             cylinder.appendChild(div);
+            
+            const li = document.createElement('li');
+            li.textContent = text;
+            if(text === "Etc.") li.style.color = 'var(--accent)';
+            listContainer.appendChild(li);
         });
 
-        // --- Map Initialization ---
-        const lat = 9.914741517459671, lng = 124.09298670595062;
-        const map = L.map('map', { zoomControl: false, scrollWheelZoom: false }).setView([lat, lng], 17);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        L.marker([lat, lng]).addTo(map).bindPopup("Silver Q. Elecronics Shop").openPopup();
+        function expandList() {
+            overlay.style.display = 'flex';
+            setTimeout(() => { overlay.classList.add('active'); }, 10);
+            document.querySelectorAll('.expanded-list li').forEach((li, i) => {
+                setTimeout(() => { li.classList.add('show'); }, 200 + (i * 80));
+            });
+        }
 
-        // --- Particle Background ---
-        const canvas = document.getElementById('fixed-canvas');
+        function closeList() {
+            overlay.classList.remove('active');
+            setTimeout(() => { 
+                overlay.style.display = 'none';
+                document.querySelectorAll('.expanded-list li').forEach(li => li.classList.remove('show'));
+            }, 500);
+        }
+
+        // --- INTERACTIVE BACKGROUND ---
+        const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
-        function init() {
+        let mouse = { x: null, y: null };
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2;
+                this.baseX = this.x; this.baseY = this.y;
+                this.density = (Math.random() * 30) + 1;
+            }
+            draw() {
+                ctx.fillStyle = 'rgba(124, 77, 255, 0.4)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance < 150) {
+                    this.x -= (dx / distance) * (150 - distance) / 10;
+                    this.y -= (dy / distance) * (150 - distance) / 10;
+                } else {
+                    this.x -= (this.x - this.baseX) / 10;
+                    this.y -= (this.y - this.baseY) / 10;
+                }
+            }
+        }
+
+        function initBG() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             particles = [];
-            for(let i=0; i<40; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, speed: (Math.random()*0.4)+0.1 });
+            for (let i = 0; i < 150; i++) { particles.push(new Particle()); }
         }
-        function animate() {
-            ctx.clearRect(0,0,canvas.width, canvas.height);
-            ctx.fillStyle = "rgba(124, 77, 255, 0.3)";
-            particles.forEach(p => {
-                p.y -= p.speed;
-                if(p.y < -50) p.y = canvas.height + 50;
-                ctx.fillRect(p.x, p.y, p.size, p.size * 10);
-            });
-            requestAnimationFrame(animate);
+
+        function animateBG() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateBG);
         }
-        window.addEventListener('resize', init);
-        init(); animate();
+
+        window.addEventListener('resize', initBG);
+        initBG(); animateBG();
+
+        const map = L.map('map', { zoomControl: false, scrollWheelZoom: false }).setView([9.9147, 124.0929], 17);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.marker([9.9147, 124.0929]).addTo(map);
     </script>
 </body>
 </html>
